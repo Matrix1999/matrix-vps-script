@@ -92,7 +92,7 @@ inst_pct() {
     "bc" "apache2" "cron" "screen" "nano" "unzip" "lsof"
     "net-tools" # netstat is part of net-tools, so no need to list netstat separately
     "dos2unix" "nload" "jq" "curl" "figlet"
-    "openssh-server"  # <--- FIX 1: ADDED THIS LINE
+    "openssh-server"
     "python3" # Use python3 explicitly for modern Ubuntu
     "python3-pip" # Use python3-pip for Python 3 pip
   )
@@ -156,7 +156,7 @@ inst_pct() {
   fi
 }
 
-# --- Telegram Functions (Security Warning: Hardcoded Tokens/IDs) ---
+# --- Telegram Functions (These functions are now unused if verification is removed) ---
 # Define ip_address as a global variable
 ip_address=$(hostname -I | awk '{print $1}')
 
@@ -164,6 +164,7 @@ ip_address=$(hostname -I | awk '{print $1}')
 time_interval=7200 # 2 hours
 max_requests=3
 
+# NOTE: check_request_limit function will no longer be called directly
 check_request_limit() {
   local ip_address_arg="$1" # Use the passed argument as the IP address
   local current_time=$(date +%s)
@@ -211,6 +212,7 @@ check_request_limit() {
   fi
 }
 
+# NOTE: send_code_telegram function will no longer be called directly
 send_code_telegram() {
   local current_time=$(date +%s)
   local storage_file="/usr/local/bin/.vff92h"
@@ -260,7 +262,7 @@ send_code_telegram() {
   return
 }
 
-# --- Function to prompt the user to enter the verification code ---
+# NOTE: prompt_verification_code function will no longer be called directly
 prompt_verification_code() {
   local last_sent=$(awk -v ip="$ip_address" '$1 == ip {print $2}' "/usr/local/bin/.vff92h")
   echo -n -e "\033[1;33m YOUR VERIFICATION CODE IS: \033[0m"
@@ -329,11 +331,11 @@ read -r x # Using -r for raw input
 
 # --- Security & Verification Section (Based on your second script) ---
 # WARNING: This section has significant security and privacy implications.
-# Ensure you understand the check_request_limit, send_code_telegram, and prompt_verification_code functions.
 # The iplogger.org call logs user IPs.
-# CHANGE 3: Commented out the request limit check
+# CHANGE: COMMENTED OUT the request limit check (already did this)
 # check_request_limit "$ip_address"
-prompt_verification_code
+# CHANGE: COMMENTED OUT the prompt_verification_code call
+# prompt_verification_code
 clear
 
 # --- User Database Handling (from your second script) ---
@@ -380,11 +382,10 @@ echo -e " \033[1;33m[\033[1;31m!\033[1;33m] \033[1;32m◇ INSTALLING PACKAGES\03
 echo ""
 echo -e "\033[1;33m◇ SOME PACKAGES ARE EXTREMELY NECESSARY!\033[0m"
 echo ""
-# CHANGE 2: TEMPORARILY REMOVED fun_bar for debugging, will show direct output
 inst_pct # Calls the revised inst_pct function
 clear
 
-# FIX 2: SSH Port Modification moved here, after packages are installed
+# SSH Port Modification moved here, after packages are installed
 # --- SSH Port Modification ---
 echo -e "\n\033[1;32mAdjusting SSH port parameters...\033[0m"
 # Modify SSH configuration and restart service
