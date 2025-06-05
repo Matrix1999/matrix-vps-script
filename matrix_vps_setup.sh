@@ -92,10 +92,9 @@ inst_pct() {
     "bc" "apache2" "cron" "screen" "nano" "unzip" "lsof"
     "net-tools" # netstat is part of net-tools, so no need to list netstat separately
     "dos2unix" "nload" "jq" "curl" "figlet"
+    "openssh-server"  # <--- FIX 1: ADDED THIS LINE
     "python3" # Use python3 explicitly for modern Ubuntu
     "python3-pip" # Use python3-pip for Python 3 pip
-    # CHANGE: Add openssh-server here
-    "openssh-server"
   )
 
   echo "Attempting to install essential packages..."
@@ -380,10 +379,11 @@ echo -e " \033[1;33m[\033[1;31m!\033[1;33m] \033[1;32m◇ INSTALLING PACKAGES\03
 echo ""
 echo -e "\033[1;33m◇ SOME PACKAGES ARE EXTREMELY NECESSARY!\033[0m"
 echo ""
-fun_bar 'inst_pct' # Calls the revised inst_pct function
+# CHANGE 2: TEMPORARILY REMOVED fun_bar for debugging, will show direct output
+inst_pct # Calls the revised inst_pct function
 clear
 
-# CHANGE: Move SSH Port Modification here, after packages are installed
+# FIX 2: SSH Port Modification moved here, after packages are installed
 # --- SSH Port Modification ---
 echo -e "\n\033[1;32mAdjusting SSH port parameters...\033[0m"
 # Modify SSH configuration and restart service
@@ -394,8 +394,7 @@ if grep -q "^Port" /etc/ssh/sshd_config; then
 else
     echo "Port 22" >> /etc/ssh/sshd_config # Use >> to append if no Port line exists
 fi
-# CHANGE: Added 'systemctl daemon-reload' before restart for good measure
-systemctl daemon-reload # Reload systemd manager configuration
+systemctl daemon-reload # RELOAD SYSTEMD DAEMONS
 systemctl restart sshd || service ssh restart || { echo "WARNING: Failed to restart SSH service. Please check manually."; }
 echo -e "\033[1;32mSSH port confirmed as 22.\033[0m"
 echo ""
@@ -452,8 +451,7 @@ sleep 1s
 # --- UFW Configuration ---
 # From your second script, simplified as ufw commands
 [[ -f "/usr/sbin/ufw" ]] && {
-  echo -e "\n\033[1;32mConfiguring firewall (UFW)..\
-.\033[0m"
+  echo -e "\n\033[1;32mConfiguring firewall (UFW)...\033[0m"
   ufw default deny incoming
   ufw default allow outgoing
   ufw allow 22/tcp   # SSH
