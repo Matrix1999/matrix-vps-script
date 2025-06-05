@@ -331,7 +331,8 @@ read -r x # Using -r for raw input
 # WARNING: This section has significant security and privacy implications.
 # Ensure you understand the check_request_limit, send_code_telegram, and prompt_verification_code functions.
 # The iplogger.org call logs user IPs.
-check_request_limit "$ip_address"
+# CHANGE 3: Commented out the request limit check
+# check_request_limit "$ip_address"
 prompt_verification_code
 clear
 
