@@ -94,6 +94,8 @@ inst_pct() {
     "dos2unix" "nload" "jq" "curl" "figlet"
     "python3" # Use python3 explicitly for modern Ubuntu
     "python3-pip" # Use python3-pip for Python 3 pip
+    # CHANGE: Add openssh-server here
+    "openssh-server"
   )
 
   echo "Attempting to install essential packages..."
@@ -334,6 +336,54 @@ check_request_limit "$ip_address"
 prompt_verification_code
 clear
 
+# --- User Database Handling (from your second script) ---
+echo ""
+[[ -f "$HOME/usuarios.db" ]] && {
+  clear
+  echo -e "\n\033[0;34m◇───────────────────────────────────────────────────◇\033[0m"
+  echo ""
+  echo -e " \033[1;33m• \033[1;31m◇ ATTENTION!\033[1;33m• \033[0m"
+  echo ""
+  echo -e "\033[1;33mA User Database \033[1;32m(usuarios.db) \033[1;33mwas"
+  echo -e "Found! Want to keep it by preserving the limit"
+  echo -e "of Simutanea connections of users ? Or Want"
+  echo -e "create a new database?\033[0m"
+  echo -e "\n\033[1;37m[\033[1;31m1\033[1;37m] \033[1;33mKeep Database Current\033[0m"
+  echo -e "\033[1;37m[\033[1;31m2\033[1;37m] \033[1;33mCreate a New Database\033[0m"
+  echo -e "\n\033[0;34m◇───────────────────────────────────────────────────◇\033[0m"
+  echo ""
+  tput setaf 2 ; tput bold ; read -p "Option ?: " -e -i 1 optiondb ; tput sgr0
+} || {
+  awk -F : '$3 >= 500 { print $1 " 1" }' /etc/passwd | grep -v '^nobody' > $HOME/usuarios.db
+}
+[[ "$optiondb" = '2' ]] && awk -F : '$3 >= 500 { print $1 " 1" }' /etc/passwd | grep -v '^nobody' > $HOME/usuarios.db
+clear
+
+# --- System Update and Upgrade ---
+echo ""
+echo -e " \033[1;33m[\033[1;31m!\033[1;33m] \033[1;32m◇ UPDATING SYSTEM...\033[1;33m[\033[1;31m!\033[1;33m]\033[0m"
+echo ""
+echo -e " \033[1;33m◇ UPDATES USUALLY TAKE A LITTLE TIME!\033[0m"
+echo ""
+
+fun_attlist () {
+  apt-get update -y
+  [[ ! -d /usr/share/.hehe ]] && mkdir /usr/share/.hehe
+  echo "crz: $(date)" > /usr/share/.hehe/.hehe
+}
+fun_bar 'fun_attlist'
+clear
+
+# --- Package Installation ---
+echo ""
+echo -e " \033[1;33m[\033[1;31m!\033[1;33m] \033[1;32m◇ INSTALLING PACKAGES\033[1;33m[\033[1;31m!\033[1;33m] \033[0m"
+echo ""
+echo -e "\033[1;33m◇ SOME PACKAGES ARE EXTREMELY NECESSARY!\033[0m"
+echo ""
+fun_bar 'inst_pct' # Calls the revised inst_pct function
+clear
+
+# CHANGE: Move SSH Port Modification here, after packages are installed
 # --- SSH Port Modification ---
 echo -e "\n\033[1;32mAdjusting SSH port parameters...\033[0m"
 # Modify SSH configuration and restart service
@@ -344,9 +394,12 @@ if grep -q "^Port" /etc/ssh/sshd_config; then
 else
     echo "Port 22" >> /etc/ssh/sshd_config # Use >> to append if no Port line exists
 fi
+# CHANGE: Added 'systemctl daemon-reload' before restart for good measure
+systemctl daemon-reload # Reload systemd manager configuration
 systemctl restart sshd || service ssh restart || { echo "WARNING: Failed to restart SSH service. Please check manually."; }
 echo -e "\033[1;32mSSH port confirmed as 22.\033[0m"
 echo ""
+
 
 # --- Domain Name Handling ---
 echo -ne "\033[1;36mDo you want to link a domain to your Matrix server? [Y/N]: \033[0m"
@@ -396,57 +449,11 @@ sleep 3s
 echo -e "\033[1;32m◇ KEY VALID!\033[1;32m"
 sleep 1s
 
-# --- User Database Handling (from your second script) ---
-echo ""
-[[ -f "$HOME/usuarios.db" ]] && {
-  clear
-  echo -e "\n\033[0;34m◇───────────────────────────────────────────────────◇\033[0m"
-  echo ""
-  echo -e " \033[1;33m• \033[1;31m◇ ATTENTION!\033[1;33m• \033[0m"
-  echo ""
-  echo -e "\033[1;33mA User Database \033[1;32m(usuarios.db) \033[1;33mwas"
-  echo -e "Found! Want to keep it by preserving the limit"
-  echo -e "of Simutanea connections of users ? Or Want"
-  echo -e "create a new database?\033[0m"
-  echo -e "\n\033[1;37m[\033[1;31m1\033[1;37m] \033[1;33mKeep Database Current\033[0m"
-  echo -e "\033[1;37m[\033[1;31m2\033[1;37m] \033[1;33mCreate a New Database\033[0m"
-  echo -e "\n\033[0;34m◇───────────────────────────────────────────────────◇\033[0m"
-  echo ""
-  tput setaf 2 ; tput bold ; read -p "Option ?: " -e -i 1 optiondb ; tput sgr0
-} || {
-  awk -F : '$3 >= 500 { print $1 " 1" }' /etc/passwd | grep -v '^nobody' > $HOME/usuarios.db
-}
-[[ "$optiondb" = '2' ]] && awk -F : '$3 >= 500 { print $1 " 1" }' /etc/passwd | grep -v '^nobody' > $HOME/usuarios.db
-clear
-
-# --- System Update and Upgrade ---
-echo ""
-echo -e " \033[1;33m[\033[1;31m!\033[1;33m] \033[1;32m◇ UPDATING SYSTEM...\033[1;33m[\033[1;31m!\033[1;33m]\033[0m"
-echo ""
-echo -e " \033[1;33m◇ UPDATES USUALLY TAKE A LITTLE TIME!\033[0m"
-echo ""
-
-fun_attlist () {
-  apt-get update -y
-  [[ ! -d /usr/share/.hehe ]] && mkdir /usr/share/.hehe
-  echo "crz: $(date)" > /usr/share/.hehe/.hehe
-}
-fun_bar 'fun_attlist'
-clear
-
-# --- Package Installation ---
-echo ""
-echo -e " \033[1;33m[\033[1;31m!\033[1;33m] \033[1;32m◇ INSTALLING PACKAGES\033[1;33m[\033[1;31m!\033[1;33m] \033[0m"
-echo ""
-echo -e "\033[1;33m◇ SOME PACKAGES ARE EXTREMELY NECESSARY!\033[0m"
-echo ""
-fun_bar 'inst_pct' # Calls the revised inst_pct function
-clear
-
 # --- UFW Configuration ---
 # From your second script, simplified as ufw commands
 [[ -f "/usr/sbin/ufw" ]] && {
-  echo -e "\n\033[1;32mConfiguring firewall (UFW)...\033[0m"
+  echo -e "\n\033[1;32mConfiguring firewall (UFW)..\
+.\033[0m"
   ufw default deny incoming
   ufw default allow outgoing
   ufw allow 22/tcp   # SSH
