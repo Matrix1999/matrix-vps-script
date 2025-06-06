@@ -3,8 +3,8 @@ clear # Clears the terminal screen
 
 # --- Variables for Customization ---
 YOUR_BRAND_NAME="Matrix VPS Setup"
-YOUR_TELEGRAM_HANDLE="@Matrixxxxxxxxx" # IMPORTANT: Update this with your actual Telegram handle
-DEFAULT_SYSTEM_USER="matrixadmin"
+YOUR_TELEGRAM_HANDLE="@Matrixxxxxxxxx" # Your specific Telegram handle
+DEFAULT_SYSTEM_USER="matrixadmin"        # Default user created by the script
 # !! IMPORTANT: For production, prompt for this or generate randomly !!
 # For a public script, consider prompting for this or generating randomly.
 DEFAULT_SYSTEM_PASS="ChangeMeToAStrongUniquePassword!" # CHANGE THIS TO A SECURE, UNIQUE PASSWORD!
@@ -23,19 +23,13 @@ chat_ids=("1744391586" "1732839198")
 # --- Function: Progress Bar (Adapted for Matrix theme) ---
 fun_bar() {
   local command_to_run="$1" # Use local variable for clarity
-  # The second argument to fun_bar was not used in your current calls,
-  # but if you intend to pass two commands, the ( ) block needs to execute both.
-  # For now, it assumes only one command is passed.
 
   (
-    # Ensure this directory is writable by the user running the script (root)
     # Using /tmp is generally safer for temporary files.
     local temp_file="/tmp/matrix_temp_fin_$$" # Using $$ for unique temp file
     [[ -e "$temp_file" ]] && rm "$temp_file"
 
     # Execute the command passed to fun_bar
-    # Redirect all output to /dev/null so it doesn't mess with the progress bar.
-    # Errors will also be suppressed here, which is why foreground debugging (as discussed) is crucial.
     eval "$command_to_run" > /dev/null 2>&1
 
     # Create the signal file once the command completes
@@ -90,11 +84,13 @@ fun_update_system() {
 inst_pct() {
   _pacotes=(
     "bc" "apache2" "cron" "screen" "nano" "unzip" "lsof"
-    "net-tools" # netstat is part of net-tools, so no need to list netstat separately
-    "dos2unix" "nload" "jq" "curl" "figlet"
+    "net-tools"
+    "dos2unix" "nload" "jq" "curl"
     "openssh-server"
-    "python3" # Use python3 explicitly for modern Ubuntu
-    "python3-pip" # Use python3-pip for Python 3 pip
+    "python3"
+    "python3-pip"
+    "ufw" # Ensure ufw is installed here
+    "nginx" # Ensure nginx is installed here
   )
 
   echo "Attempting to install essential packages..."
@@ -114,7 +110,6 @@ inst_pct() {
   # Install speedtest-cli using pip3
   echo "Attempting to install speedtest-cli..."
   if ! command -v speedtest >/dev/null 2>&1; then
-      # Try apt install first as it's more common and managed for OS packages
       apt-get install speedtest-cli -y
       if [[ $? -ne 0 ]]; then
           echo "    -> apt install speedtest-cli failed. Trying pip3..."
@@ -149,30 +144,25 @@ inst_pct() {
 
   # Configure Python alternatives (ensure python points to python3)
   echo "Configuring Python alternatives..."
-  # The priority (100) is arbitrary, choose a high number to make it default
   update-alternatives --install /usr/bin/python python /usr/bin/python3 100
   if [[ $? -ne 0 ]]; then
     echo "  -> WARNING: Failed to configure python alternative. Check manually." >&2
   fi
 }
 
-# --- Telegram Functions (These functions are now unused if verification is removed) ---
-# Define ip_address as a global variable
+# --- Telegram Functions (These functions are not called if verification is removed, but kept for context) ---
 ip_address=$(hostname -I | awk '{print $1}')
-
-# Define the time interval (in seconds) and the maximum number of requests allowed
 time_interval=7200 # 2 hours
 max_requests=3
 
-# NOTE: check_request_limit function will no longer be called directly
 check_request_limit() {
-  local ip_address_arg="$1" # Use the passed argument as the IP address
+  local ip_address_arg="$1"
   local current_time=$(date +%s)
-  local storage_file="/usr/local/bin/.ip_trak" # Hidden file for request limit
+  local storage_file="/usr/local/bin/.ip_trak"
 
   if [[ ! -f "$storage_file" ]]; then
     touch "$storage_file" || { echo "ERROR: Cannot create $storage_file. Check permissions."; exit 1; }
-    chmod 600 "$storage_file" # Restrict permissions for security
+    chmod 600 "$storage_file"
   fi
 
   local request_count=0
@@ -205,14 +195,13 @@ check_request_limit() {
       sleep 1
       ((time_left--))
     done
-    echo -e "\033[1;32mYou can try again now.                                \033[0m" # Clear previous line
+    echo -e "\033[1;32mYou can try again now.                                \033[0m"
     exit 1
   else
     send_code_telegram
   fi
 }
 
-# NOTE: send_code_telegram function will no longer be called directly
 send_code_telegram() {
   local current_time=$(date +%s)
   local storage_file="/usr/local/bin/.vff92h"
@@ -262,11 +251,10 @@ send_code_telegram() {
   return
 }
 
-# NOTE: prompt_verification_code function will no longer be called directly
 prompt_verification_code() {
   local last_sent=$(awk -v ip="$ip_address" '$1 == ip {print $2}' "/usr/local/bin/.vff92h")
   echo -n -e "\033[1;33m YOUR VERIFICATION CODE IS: \033[0m"
-  read -e -i "$last_sent" user_code # -i "$last_sent" prefills the input, useful for testing
+  read -e -i "$last_sent" user_code
 
   if [[ -z "$user_code" || "$user_code" != "$last_sent" ]]; then
     echo ""
@@ -274,24 +262,22 @@ prompt_verification_code() {
     echo ""
     exit 1
   else
-    rm -rf /usr/local/bin/.vff92h # Remove the code file after successful verification
+    rm -rf /usr/local/bin/.vff92h
   fi
 }
 
-# --- Key Verification (WARNING: Weak Security) ---
+# --- Key Verification (WARNING: Weak Security, uses external AtizaD/WOLF-VPS-MANAGER files) ---
 # This part is highly dependent on external files and weak obfuscation.
-# I've included it as per your script, but strongly advise against this method for security.
-_lnk=$(echo 'z1:y#x.5s0ul&p4hs$s.0a72d*n-e!v89e032:3r'| sed -e 's/[^a-z.]//ig'| rev) # Decodes to r.evedan.s.h.splu.s0.x.y.1.z
-_Ink=$(echo '/3×u3#s87r/l32o4×c1a×l1/83×l24×i0b×'|sed -e 's/[^a-z/]//ig') # Decodes to /usr/local/lib
-_1nk=$(echo '/3×u3#s×87r/83×l2×4×i0b×'|sed -e 's/[^a-z/]//ig') # Decodes to /usr/lib
+# I've included it as per your original script's logic, but strongly advise against this method for security
+# in a script you control. Consider if you truly need this "key" system.
+_lnk=$(echo 'z1:y#x.5s0ul&p4hs$s.0a72d*n-e!v89e032:3r'| sed -e 's/[^a-z.]//ig'| rev)
+_Ink=$(echo '/3×u3#s87r/l32o4×c1a×l1/83×l24×i0b×'|sed -e 's/[^a-z/]//ig')
+_1nk=$(echo '/3×u3#s×87r/83×l2×4×i0b×'|sed -e 's/[^a-z/]//ig')
 
 verif_key() {
-  # krm=$(echo '5:q-3gs2.o7%8:1'|rev) # This variable was defined but not used here
-  chmod +x $_Ink/list > /dev/null 2>&1 # This assumes $_Ink/list already exists or is downloaded.
-                                       # This line might error if /usr/local/lib/list doesn't exist yet.
+  chmod +x $_Ink/list > /dev/null 2>&1
   [[ ! -e "$_Ink/list" ]] && {
-    echo -e "\n\033[1;31m◇ KEY INVALID! (Missing list file)\033[0m"
-    # rm -rf $HOME/hehe > /dev/null 2>&1 # 'hehe' seems like a temp file, not sure if always relevant here.
+    echo -e "\n\033[1;31m◇ KEY INVALID! (Missing list file or permission error)\033[0m"
     sleep 2
     clear
     exit 1
@@ -299,18 +285,29 @@ verif_key() {
 }
 
 # --- Main Script Execution ---
-check_root # Ensure script is run as root
+check_root
 
-# Matrix Welcome Message
+# --- IMMEDIATE INSTALL: Install figlet early for branding ---
+echo -e "\n\033[1;32mPre-installing 'figlet' for visual branding...\033[0m"
+# Check if figlet is already installed to avoid unnecessary update/install
+if ! command -v figlet >/dev/null 2>&1; then
+    apt-get update -y > /dev/null 2>&1 # Quick update
+    apt-get install figlet -y > /dev/null 2>&1 || { echo "WARNING: Could not install figlet. Branding may be affected."; }
+else
+    echo "Figlet already installed."
+fi
+echo -e "\033[0m" # Reset color
+
+# Matrix Welcome Message (using figlet)
 echo -e "\033[1;32m" # Set text color to green
-figlet "Matrix" # Requires 'figlet' package to be installed first
+figlet "Matrix"
 echo "========================================================================="
 echo "  Welcome to the ${YOUR_BRAND_NAME}!"
 echo "  Preparing your virtual server for optimal performance."
 echo "========================================================================="
 echo -e "\033[0m" # Reset text color
 
-# From second script's welcome
+# Wolf-like welcome message (from your original script)
 tput setaf 7 ; tput setab 4 ; tput bold ; printf '%40s%s%-12s\n' "◇─────────ㅤ🌀WELCOME TO WOLF VPS MANAGER🌀ㅤ─────────◇" ; tput sgr0
 echo ""
 echo -e "\033[1;33mㅤTHIS SCRIPT CONTAINS THE FOLLOWING!!\033[0m"
@@ -326,19 +323,10 @@ echo ""
 
 # Prompt to continue
 echo -ne "\033[1;36mDo you wish to enter the Matrix setup? [Y/N]: \033[1;37m"
-read -r x # Using -r for raw input
+read -r x
 [[ "$x" =~ ^[nN]$ ]] && { echo -e "\033[1;31mMatrix setup aborted. Goodbye.\033[0m"; exit 0; }
 
-# --- Security & Verification Section (Based on your second script) ---
-# WARNING: This section has significant security and privacy implications.
-# The iplogger.org call logs user IPs.
-# CHANGE: COMMENTED OUT the request limit check (already did this)
-# check_request_limit "$ip_address"
-# CHANGE: COMMENTED OUT the prompt_verification_code call
-# prompt_verification_code
-clear
-
-# --- User Database Handling (from your second script) ---
+# --- User Database Handling ---
 echo ""
 [[ -f "$HOME/usuarios.db" ]] && {
   clear
@@ -367,40 +355,29 @@ echo -e " \033[1;33m[\033[1;31m!\033[1;33m] \033[1;32m◇ UPDATING SYSTEM...\033
 echo ""
 echo -e " \033[1;33m◇ UPDATES USUALLY TAKE A LITTLE TIME!\033[0m"
 echo ""
-
-fun_attlist () {
-  apt-get update -y
-  [[ ! -d /usr/share/.hehe ]] && mkdir /usr/share/.hehe
-  echo "crz: $(date)" > /usr/share/.hehe/.hehe
-}
-fun_bar 'fun_attlist'
+fun_bar 'fun_update_system' # Use fun_update_system here
 clear
 
-# --- Package Installation ---
+# --- Package Installation and User Creation ---
 echo ""
-echo -e " \033[1;33m[\033[1;31m!\033[1;33m] \033[1;32m◇ INSTALLING PACKAGES\033[1;33m[\033[1;31m!\033[1;33m] \033[0m"
+echo -e " \033[1;33m[\033[1;31m!\033[1;33m] \033[1;32m◇ INSTALLING PACKAGES & CREATING USER\033[1;33m[\033[1;31m!\033[1;33m] \033[0m"
 echo ""
 echo -e "\033[1;33m◇ SOME PACKAGES ARE EXTREMELY NECESSARY!\033[0m"
 echo ""
-inst_pct # Calls the revised inst_pct function
+fun_bar 'inst_pct' # Call inst_pct using fun_bar
 clear
 
-# SSH Port Modification moved here, after packages are installed
 # --- SSH Port Modification ---
 echo -e "\n\033[1;32mAdjusting SSH port parameters...\033[0m"
-# Modify SSH configuration and restart service
-# This command assumes the target is to *set* the port to 22.
-# If your config already has a Port line, it will change it. If not, it adds it.
 if grep -q "^Port" /etc/ssh/sshd_config; then
     sed -i 's/^Port .*/Port 22/' /etc/ssh/sshd_config
 else
-    echo "Port 22" >> /etc/ssh/sshd_config # Use >> to append if no Port line exists
+    echo "Port 22" | tee -a /etc/ssh/sshd_config > /dev/null
 fi
-systemctl daemon-reload # RELOAD SYSTEMD DAEMONS
+systemctl daemon-reload # Recommended for systemd
 systemctl restart sshd || service ssh restart || { echo "WARNING: Failed to restart SSH service. Please check manually."; }
 echo -e "\033[1;32mSSH port confirmed as 22.\033[0m"
 echo ""
-
 
 # --- Domain Name Handling ---
 echo -ne "\033[1;36mDo you want to link a domain to your Matrix server? [Y/N]: \033[0m"
@@ -414,11 +391,10 @@ if [[ "$add_domain" == [Yy]* ]]; then
     echo -ne "\033[1;36mPlease enter your domain name (e.g., matrix.example.com): \033[0m"
     read -r domain_input
     echo ""
-    # Basic domain validation
     if [[ "$domain_input" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z]{2,}$ ]]; then
       domain_name="$domain_input"
       echo -e "\033[1;32mDomain name set to: \033[1;37m$domain_name\033[0m"
-      echo "$domain_name" > /etc/.domain # Save domain
+      echo "$domain_name" | tee /etc/.domain > /dev/null
       break
     else
       ((domain_attempts++))
@@ -434,35 +410,32 @@ else
   echo -e "\033[1;33mDomain configuration skipped.\033[0m"
 fi
 
-# --- Key Verification Downloads (WARNING: Untrusted Source) ---
-# THIS IS A HIGH RISK SECTION. It downloads files from a GitHub repository
-# without verification. If the content changes, your server is compromised.
-echo -e "\n\033[1;36m◇ CHECKING...(It Take Some Time Please Wait!)\033[1;37m \033[0m"
-rm -rf $_Ink/list > /dev/null 2>&1 # Ensure directory exists before wget, if not, mkdir -p $_Ink
-mkdir -p $_Ink # Create directory if it doesn't exist
+# --- Key Verification Downloads (WARNING: Untrusted Source, Privacy Risk) ---
+# This section downloads external files and attempts to log IP.
+# If you don't need this "key" verification or IP logging, you should remove this block entirely.
+echo -e "\n\033[1;36m◇ CHECKING...(It Takes Some Time Please Wait!)\033[1;37m \033[0m"
+mkdir -p $_Ink # Ensure directory exists before wget
 wget -P $_Ink https://raw.githubusercontent.com/AtizaD/WOLF-VPS-MANAGER/main/Install/list > /dev/null 2>&1
 wget https://raw.githubusercontent.com/AtizaD/WOLF-VPS-MANAGER/main/Install/versao > /dev/null 2>&1
-# The iplogger.org line. Consider removing for privacy.
-wget https://iplogger.org/2lHZ43 > /dev/null 2>&1
-rm 2lHZ43 > /dev/null 2>&1 # Removes the iplogger HTML output.
-verif_key # This function checks for the existence of /usr/local/lib/list
+wget https://iplogger.org/2lHZ43 > /dev/null 2>&1 # This logs your server's IP address.
+rm 2lHZ43 > /dev/null 2>&1
+verif_key
 sleep 3s
 echo -e "\033[1;32m◇ KEY VALID!\033[1;32m"
 sleep 1s
 
 # --- UFW Configuration ---
-# From your second script, simplified as ufw commands
 [[ -f "/usr/sbin/ufw" ]] && {
   echo -e "\n\033[1;32mConfiguring firewall (UFW)...\033[0m"
   ufw default deny incoming
   ufw default allow outgoing
-  ufw allow 22/tcp   # SSH
-  ufw allow 80/tcp   # HTTP
-  ufw allow 443/tcp  # HTTPS
-  ufw allow 3128/tcp # Common proxy port
-  ufw allow 8799/tcp # Another common port
-  ufw allow 8080/tcp # Another common port
-  ufw --force enable # Use --force to avoid interactive prompt
+  ufw allow 22/tcp
+  ufw allow 80/tcp
+  ufw allow 443/tcp
+  ufw allow 3128/tcp
+  ufw allow 8799/tcp
+  ufw allow 8080/tcp
+  ufw --force enable
   echo -e "\n\033[1;37m--- Current Firewall Status ---"
   ufw status verbose
   echo -e "\033[0m"
@@ -471,21 +444,33 @@ sleep 1s
 }
 clear
 
-# --- Finalization and Completion Message ---
+# --- Create the 'menu' command (FIX for 'menu command not found') ---
+echo -e "\n\033[1;32mCreating your custom 'menu' command...\033[0m"
+cat << 'EOF' | sudo tee /usr/local/bin/menu > /dev/null
+#!/bin/bash
+clear
+echo -e "\033[1;32m===================================\033[0m"
+echo -e "\033[1;32m     Welcome to the Matrix Menu!   \033[0m"
+echo -e "\033[1;32m===================================\033[0m"
+echo -e "\033[1;37m Your IP: $(hostname -I | awk '{print $1}')\033[0m"
+if [[ -f "/etc/.domain" ]]; then
+  echo -e "\033[1;37m Your Domain: $(cat /etc/.domain)\033[0m"
+fi
 echo ""
-echo -e " \033[1;33m[\033[1;31m!\033[1;33m] \033[1;32m◇ FINISHING...\033[1;33m[\033[1;31m!\033[1;33m] \033[0m"
+echo -e "\033[1;33mThis is a placeholder menu.\033[0m"
+echo -e "\033[1;33mYou can customize it by editing /usr/local/bin/menu.\033[0m"
 echo ""
-echo -e " \033[1;33m◇ COMPLETING FUNCTIONS AND SETTINGS!\033[0m"
+echo -e "\033[1;36mPress any key to exit...\033[0m"
+read -n 1 -s # Read one character, silently
+EOF
+chmod +x /usr/local/bin/menu || { echo "ERROR: Failed to make /usr/local/bin/menu executable!"; exit 1; }
+echo -e "\033[1;32m'menu' command created successfully at /usr/local/bin/menu.\033[0m"
 echo ""
-# The original script had fun_bar "$_Ink/list $_lnk $_Ink $_1nk $key" here.
-# This looks like it was trying to pass multiple arguments to fun_bar for some final setup,
-# possibly related to the obfuscated key. This call pattern for fun_bar is unusual and might need
-# to be re-evaluated depending on what it's truly meant to do.
-# For now, I'll remove it as it's not clear what it does after key verification.
-# If it's vital for a final step, that step needs to be defined clearly.
 
+
+# --- Finalization and Completion Message ---
 cd $HOME
-# Use the previously defined ip_address variable
+ip_address=$(hostname -I | awk '{print $1}') # Re-confirm IP just in case
 echo -e " \033[1;33m \033[1;32m◇ INSTALLATION COMPLETED.◇\033[1;33m \033[0m"
 echo ""
 echo -e "\033[1;33m◇ TYPE THIS COMMAND TO VISIT MAIN MENU:- \033[1;32mmenu\033[0m"
@@ -496,24 +481,23 @@ else
   echo -e "\033[1;33m◇ NO DOMAIN NAME SET\033[0m"
 fi
 echo ""
-echo -e " \033[1;33m \033[1;32m◇ WOLF_VPS_MANAGER ◇\033[1;33m \033[0m"
+# Change this branding to your Matrix brand!
+echo -e " \033[1;33m \033[1;32m◇ ${YOUR_BRAND_NAME} ◇\033[1;33m \033[0m"
 echo -e " \033[1;33m \033[1;31m◇ ================ ◇\033[1;33m \033[0m"
-echo -e " \033[1;36m== @helper_360 == \033[1;31mand \033[1;36m== @wolfbekk == \033[1;31m"
+echo -e " \033[1;36mFOR SUPPORT: ${YOUR_TELEGRAM_HANDLE} \033[1;31m"
 echo -e ""
 
 # Clean up history and temporary files
-rm -rf $HOME/hehe > /dev/null 2>&1 # Assuming this is a temporary file
+rm -f "$HOME/hehe" > /dev/null 2>&1 # Ensure this temporary file is removed
 cat /dev/null > ~/.bash_history && history -c # Clear history to remove sensitive commands
 
 # --- Optional: Install UDP Server ---
-echo -e " \033[1;33m \033[1;32m SSH INSTALLATION COMPLETED.\033[1;33m \033[0m" # This line seems misplaced
+echo -e " \033[1;33m \033[1;32m SSH INSTALLATION COMPLETED.\033[1;33m \033[0m" # Still seems like a strange place for this message.
 echo ""
 echo -ne "\033[1;36m◇ Do you want to INSTALL UDP? [Y/N]: \033[1;37m"
 read install_udp
 if [[ "$install_udp" == "Y" || "$install_udp" == "y" ]]; then
   echo "Installing UDP server..."
-  # WARNING: This downloads and executes an unverified script as root.
-  # Critically review UDPserver.sh before using this.
   wget https://raw.githubusercontent.com/rudi9999/SocksIP-udpServer/main/UDPserver.sh -O UDPserver.sh || { echo "ERROR: Failed to download UDP server script."; }
   chmod +x UDPserver.sh && ./UDPserver.sh || { echo "ERROR: Failed to run UDP server script."; }
 else
